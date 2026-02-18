@@ -1,88 +1,55 @@
 from collections import deque
+import copy
 
-class ManGoatLionCabbage:
-    def __init__(self):
-        # L = Left bank, R = Right bank
-        self.start_state = ('L', 'L', 'L', 'L')   # (Man, Goat, Lion, Cabbage)
-        self.goal_state  = ('R', 'R', 'R', 'R')
+class BlockWorld:
+    def __init__(self, start, goal):
+        self.start = start
+        self.goal = goal
 
+    def goal_test(self, state):
+        return state == self.goal
 
-    def goalTest(self, state):
-        return state == self.goal_state
+    def get_successors(self, state):
+        successors = []
 
-    def is_safe(self, state):
-        man, goat, lion, cabbage = state
+        for i in range(len(state)):
+            if len(state[i]) == 0:
+                continue
 
-        # Goat and Lion alone
-        if man != goat and goat == lion:
-            return False
+            # Pick top block from stack i
+            block = state[i][-1]
 
-        # Goat and Cabbage alone
-        if man != goat and goat == cabbage:
-            return False
+            for j in range(len(state)):
+                if i != j:
+                    new_state = copy.deepcopy(state)
 
-        return True
+                    # Remove block from stack i
+                    new_state[i].pop()
 
-    def successors(self, state):
-        man, goat, lion, cabbage = state
-        next_states = []
+                    # Place block on stack j
+                    new_state[j].append(block)
 
-        def move(entity_index=None):
-            new_state = list(state)
-            new_state[0] = 'R' if man == 'L' else 'L'
-            if entity_index is not None:
-                new_state[entity_index] = new_state[0]
-            return tuple(new_state)
+                    successors.append(new_state)
 
-        # Man moves alone
-        s = move()
-        if self.is_safe(s):
-            next_states.append(s)
-
-        # Man takes Goat
-        if man == goat:
-            s = move(1)
-            if self.is_safe(s):
-                next_states.append(s)
-
-        # Man takes Lion
-        if man == lion:
-            s = move(2)
-            if self.is_safe(s):
-                next_states.append(s)
-
-        # Man takes Cabbage
-        if man == cabbage:
-            s = move(3)
-            if self.is_safe(s):
-                next_states.append(s)
-
-        return next_states
-
+        return successors
 
     def bfs(self):
-        queue = deque([[self.start_state]])
-        visited = set()
+        queue = deque([(self.start, [])])
+        visited = []
 
         while queue:
-            path = queue.popleft()
-            current = path[-1]
+            current, path = queue.popleft()
 
-            if self.goalTest(current):
-                return path
+            if self.goal_test(current):
+                return path + [current]
 
             if current not in visited:
-                visited.add(current)
-                for next_state in self.successors(current):
-                    queue.append(path + [next_state])
+                visited.append(current)
+
+                for successor in self.get_successors(current):
+                    queue.append((successor, path + [current]))
 
         return None
 
 
 if __name__ == "__main__":
-    problem = ManGoatLionCabbage()
-    solution = problem.bfs()
-
-    print("Solution Path:")
-    for step, state in enumerate(solution):
-        print(f"Step {step}: {state}")
